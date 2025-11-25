@@ -1,6 +1,10 @@
-import Login from "@/pages/Login";
+"use client";
+import dynamicImport from "next/dynamic";
 
-export const dynamic = 'force-dynamic';
+// Importação dinâmica para evitar SSG
+const Login = dynamicImport(() => import("@/pages/Login"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <Login />;

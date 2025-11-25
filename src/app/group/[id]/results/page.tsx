@@ -1,7 +1,10 @@
 "use client";
-import AllResults from "@/pages/AllResults";
+import dynamicImport from "next/dynamic";
 
-export const dynamic = 'force-dynamic';
+// Importação dinâmica para evitar SSG
+const AllResults = dynamicImport(() => import("@/pages/AllResults"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <AllResults />;

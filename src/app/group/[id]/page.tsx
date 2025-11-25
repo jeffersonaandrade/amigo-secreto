@@ -1,7 +1,10 @@
 "use client";
-import GroupDetail from "@/pages/GroupDetail";
+import dynamicImport from "next/dynamic";
 
-export const dynamic = 'force-dynamic';
+// Importação dinâmica para evitar SSG
+const GroupDetail = dynamicImport(() => import("@/pages/GroupDetail"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <GroupDetail />;

@@ -1,13 +1,24 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/_core/hooks/useAuth";
 import * as firestore from "@/lib/firestore";
 import type { Group, InsertGroup } from "@shared/types";
 import { toast } from "sonner";
+import { isClient, safeUseQueryClient } from "./_helpers";
 
 export function useGroups() {
+  // Durante o build, retorna valores mock
+  if (!isClient) {
+    return {
+      groups: [],
+      isLoading: false,
+      createGroup: async () => ({} as any),
+      isCreating: false,
+    };
+  }
+
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const queryClient = safeUseQueryClient();
 
   const groupsQuery = useQuery({
     queryKey: ["groups", user?.id],
@@ -70,7 +81,19 @@ export function useGroups() {
 }
 
 export function useGroup(groupId: string | null) {
-  const queryClient = useQueryClient();
+  // Durante o build, retorna valores mock
+  if (!isClient) {
+    return {
+      group: null,
+      isLoading: false,
+      updateGroup: async () => {},
+      deleteGroup: async () => {},
+      isUpdating: false,
+      isDeleting: false,
+    };
+  }
+
+  const queryClient = safeUseQueryClient();
   const { user } = useAuth();
 
   const groupQuery = useQuery({

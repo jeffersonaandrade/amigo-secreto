@@ -13,7 +13,10 @@ type UseAuthOptions = {
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = "/login" } =
     options ?? {};
-  const utils = trpc.useUtils();
+  
+  // Proteção: só inicializa hooks do tRPC no cliente
+  const isClient = typeof window !== 'undefined';
+  const utils = isClient ? trpc.useUtils() : null;
 
   // Get user from Firestore based on Firebase Auth
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -28,6 +31,8 @@ export function useAuth(options?: UseAuthOptions) {
     // 1. Verificar ativamente se voltamos do Google com erro ou sucesso
     // IMPORTANTE: Aguardar um pouco para garantir que o Firebase processou o redirect
     const checkRedirect = async () => {
+      if (!auth) return;
+      
       try {
         // Pequeno delay para garantir que o Firebase processou o redirect
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -84,29 +89,36 @@ export function useAuth(options?: UseAuthOptions) {
   }, []);
 
   // Get user data from Firestore
-  const userQuery = trpc.auth.me.useQuery(undefined, {
+  // IMPORTANTE: Só executa no cliente para evitar erros durante o build
+  const userQuery = isClient ? trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
     enabled: !!firebaseUser,
-    onSuccess: (data) => {
-      console.log("[Auth] Query auth.me retornou:", data ? `Usuário: ${data.email} (${data.id})` : "null");
-    },
-    onError: (error) => {
-      console.error("[Auth] Erro na query auth.me:", error);
-    },
-  });
+  }) : { data: null, isLoading: false, error: null, refetch: async () => ({}) };
 
-  const logoutMutation = trpc.auth.logout.useMutation({
+  // Logs para debug (usando useEffect ao invés de onSuccess/onError)
+  useEffect(() => {
+    if (userQuery.data !== undefined) {
+      console.log("[Auth] Query auth.me retornou:", userQuery.data ? `Usuário: ${userQuery.data.email} (${userQuery.data.id})` : "null");
+    }
+    if (userQuery.error) {
+      console.error("[Auth] Erro na query auth.me:", userQuery.error);
+    }
+  }, [userQuery.data, userQuery.error]);
+
+  const logoutMutation = isClient ? trpc.auth.logout.useMutation({
     onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
+      if (utils) utils.auth.me.setData(undefined, null);
     },
-  });
+  }) : { mutateAsync: async () => {}, isPending: false, error: null };
 
   const logout = useCallback(async () => {
-    if (!auth) return;
+    if (!auth || !isClient) return;
     try {
       await signOut(auth);
-      await logoutMutation.mutateAsync();
+      if (logoutMutation.mutateAsync) {
+        await logoutMutation.mutateAsync();
+      }
     } catch (error: unknown) {
       if (
         error instanceof TRPCClientError &&
@@ -116,10 +128,12 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
-      utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
+      if (utils) {
+        utils.auth.me.setData(undefined, null);
+        await utils.auth.me.invalidate();
+      }
     }
-  }, [logoutMutation, utils]);
+  }, [logoutMutation, utils, isClient]);
 
   const state = useMemo(() => {
     return {

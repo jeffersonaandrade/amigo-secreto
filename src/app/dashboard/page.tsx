@@ -1,6 +1,10 @@
-import Dashboard from "@/pages/Dashboard";
+"use client";
+import dynamicImport from "next/dynamic";
 
-export const dynamic = 'force-dynamic';
+// Importação dinâmica para evitar SSG
+const Dashboard = dynamicImport(() => import("@/pages/Dashboard"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <Dashboard />;

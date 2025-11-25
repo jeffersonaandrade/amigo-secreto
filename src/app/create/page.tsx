@@ -1,7 +1,10 @@
 "use client";
-import CreateGroup from "@/pages/CreateGroup";
+import dynamicImport from "next/dynamic";
 
-export const dynamic = 'force-dynamic';
+// Importação dinâmica para evitar SSG
+const CreateGroup = dynamicImport(() => import("@/pages/CreateGroup"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <CreateGroup />;

@@ -1,7 +1,8 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import * as firestore from "@/lib/firestore";
 import { toast } from "sonner";
+import { isClient, safeUseQueryClient } from "./_helpers";
 
 // Algoritmo de sorteio que garante que ninguém tira a si mesmo
 function performDrawAlgorithm(participantIds: string[]): Map<string, string> {
@@ -38,7 +39,19 @@ function performDrawAlgorithm(participantIds: string[]): Map<string, string> {
 }
 
 export function useDraw(groupId: string | null) {
-  const queryClient = useQueryClient();
+  // Durante o build, retorna valores mock
+  if (!isClient) {
+    return {
+      draws: [],
+      isLoading: false,
+      performDraw: async () => ({} as any),
+      redoDraw: async () => {},
+      isPerforming: false,
+      isRedoing: false,
+    };
+  }
+
+  const queryClient = safeUseQueryClient();
 
   const drawsQuery = useQuery({
     queryKey: ["draws", groupId],
@@ -113,6 +126,16 @@ export function useDraw(groupId: string | null) {
 }
 
 export function useDrawForGiver(groupId: string | null, giverId: string | null) {
+  // Durante o build, retorna valores mock
+  if (!isClient) {
+    return {
+      data: null,
+      isLoading: false,
+      error: null,
+      refetch: async () => ({ data: null, error: null }),
+    } as any;
+  }
+
   return useQuery({
     queryKey: ["draw", groupId, giverId],
     queryFn: async () => {

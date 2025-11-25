@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: false, // Desativado temporariamente para testar login com Google
   output: 'standalone',
+  // Desabilita SSG completamente - todas as páginas serão renderizadas no servidor (SSR) ou cliente
+  // Isso é necessário porque usamos tRPC e Firebase Client SDK que só funcionam no cliente
+  generateBuildId: async () => {
+    return 'build-' + Date.now().toString();
+  },
   images: {
     formats: ['image/avif', 'image/webp'],
   },

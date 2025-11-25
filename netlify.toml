@@ -1,3 +1,42 @@
 [build]
   command = "npm run build"
   publish = ".next"
+
+# Configuração para Next.js 15 com output standalone
+[build.environment]
+  NODE_VERSION = "20"
+
+# Plugin do Netlify para Next.js (detecta automaticamente, mas configuramos explicitamente)
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirecionamentos para SPA (Single Page Application)
+# Todas as rotas devem ir para index.html, exceto arquivos estáticos
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"], Country = ["US"]}
+  force = false
+
+# Redirecionamentos específicos para API routes
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Headers de segurança
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Headers específicos para permitir popups do Google Auth
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin-allow-popups"

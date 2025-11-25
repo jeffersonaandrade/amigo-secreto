@@ -1,7 +1,10 @@
 "use client";
-import ParticipantResult from "@/pages/ParticipantResult";
+import dynamicImport from "next/dynamic";
 
-export const dynamic = 'force-dynamic';
+// Importação dinâmica para evitar SSG
+const ParticipantResult = dynamicImport(() => import("@/pages/ParticipantResult"), {
+  ssr: false,
+});
 
 export default function Page() {
   return <ParticipantResult />;

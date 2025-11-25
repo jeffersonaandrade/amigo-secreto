@@ -1,11 +1,24 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import * as firestore from "@/lib/firestore";
 import type { Participant, InsertParticipant } from "@shared/types";
 import { toast } from "sonner";
+import { isClient, safeUseQueryClient } from "./_helpers";
 
 export function useParticipants(groupId: string | null) {
-  const queryClient = useQueryClient();
+  // Durante o build, retorna valores mock
+  if (!isClient) {
+    return {
+      participants: [],
+      isLoading: false,
+      addParticipant: async () => ({} as any),
+      removeParticipant: async () => {},
+      isAdding: false,
+      isRemoving: false,
+    };
+  }
+
+  const queryClient = safeUseQueryClient();
 
   const participantsQuery = useQuery({
     queryKey: ["participants", groupId],
@@ -62,6 +75,16 @@ export function useParticipants(groupId: string | null) {
 }
 
 export function useParticipantByToken(token: string | null) {
+  // Durante o build, retorna valores mock
+  if (!isClient) {
+    return {
+      data: null,
+      isLoading: false,
+      error: null,
+      refetch: async () => ({ data: null, error: null }),
+    } as any;
+  }
+
   return useQuery({
     queryKey: ["participant", token],
     queryFn: async () => {
