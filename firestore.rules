@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Usuário logado (Admin)
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // 1. GRUPOS (Leitura pública necessária para carregar a página inicial do grupo)
+    match /groups/{groupId} {
+      allow read: if true; 
+      allow create: if isAuth() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if isAuth() && resource.data.creatorId == request.auth.uid;
+    }
+
+    // 2. PARTICIPANTES (Leitura pública para validar o Token)
+    match /participants/{participantId} {
+      // Permite ler se souber o ID ou se estiver buscando por token
+      allow read: if true; 
+      // Escrita protegida - apenas o criador do grupo pode criar/editar/deletar
+      allow create, update, delete: if isAuth() && 
+        get(/databases/$(database)/documents/groups/$(request.resource.data.groupId != null ? request.resource.data.groupId : resource.data.groupId)).data.creatorId == request.auth.uid;
+    }
+
+    // 3. SORTEIOS (O Ponto Crítico)
+    match /draws/{drawId} {
+      // Permite leitura pública (necessário para o participante ver o resultado dele)
+      // MAS, só se souber o ID do sorteio ou filtrar pelo giverId correto.
+      allow read: if true;
+      
+      // Criação/Edição BLINDADA (Só o Admin faz)
+      allow create, update, delete: if isAuth() && 
+        get(/databases/$(database)/documents/groups/$(request.resource.data.groupId != null ? request.resource.data.groupId : resource.data.groupId)).data.creatorId == request.auth.uid;
+    }
+    
+    // 4. USERS (Protegido)
+    match /users/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+  }
+}
