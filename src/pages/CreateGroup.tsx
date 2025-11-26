@@ -85,7 +85,9 @@ export default function CreateGroup() {
         name: name.trim(),
         description: description.trim() || null,
         suggestedValue: numericValue ? String(numericValue) : null,
-        revealDate: revealDate ? new Date(revealDate) : null,
+        // Fix: Adiciona "T12:00:00" para evitar problemas de fuso horário
+        // Isso garante que a data seja salva como meio-dia, evitando a virada do dia
+        revealDate: revealDate ? new Date(revealDate + "T12:00:00") : null,
       });
       router.push(`/group/${group.id}`);
     } catch (error) {

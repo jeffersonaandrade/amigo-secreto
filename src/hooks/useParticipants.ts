@@ -1,9 +1,9 @@
 "use client";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as firestore from "@/lib/firestore";
 import type { Participant, InsertParticipant } from "@shared/types";
 import { toast } from "sonner";
-import { isClient, safeUseQueryClient } from "./_helpers";
+import { isClient } from "./_helpers";
 
 export function useParticipants(groupId: string | null) {
   // Durante o build, retorna valores mock
@@ -18,7 +18,7 @@ export function useParticipants(groupId: string | null) {
     };
   }
 
-  const queryClient = safeUseQueryClient();
+  const queryClient = useQueryClient();
 
   const participantsQuery = useQuery({
     queryKey: ["participants", groupId],
@@ -42,8 +42,11 @@ export function useParticipants(groupId: string | null) {
         accessToken,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["participants", groupId] });
+    onSuccess: async () => {
+      // Invalida e recarrega a lista de participantes imediatamente
+      await queryClient.invalidateQueries({ queryKey: ["participants", groupId] });
+      // Força um refetch para garantir que a lista seja atualizada
+      await queryClient.refetchQueries({ queryKey: ["participants", groupId] });
       toast.success("Participante adicionado!");
     },
     onError: (error) => {
@@ -55,8 +58,11 @@ export function useParticipants(groupId: string | null) {
     mutationFn: async (participantId: string) => {
       await firestore.deleteParticipant(participantId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["participants", groupId] });
+    onSuccess: async () => {
+      // Invalida e recarrega a lista de participantes imediatamente
+      await queryClient.invalidateQueries({ queryKey: ["participants", groupId] });
+      // Força um refetch para garantir que a lista seja atualizada
+      await queryClient.refetchQueries({ queryKey: ["participants", groupId] });
       toast.success("Participante removido!");
     },
     onError: (error) => {
