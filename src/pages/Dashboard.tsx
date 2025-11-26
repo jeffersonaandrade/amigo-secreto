@@ -2,7 +2,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift, Plus, Calendar, Users as UsersIcon, Loader2 } from "lucide-react";
+import { Gift, Plus, Calendar, Users as UsersIcon, Loader2, Trash2 } from "lucide-react";
 import { APP_TITLE } from "@/const";
 import Link from "next/link";
 import { useGroups } from "@/hooks/useGroups";
@@ -10,11 +10,29 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+import * as firestore from "@/lib/firestore";
 
 export default function Dashboard() {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
   const { groups, isLoading } = useGroups();
+
+  // Função para deletar grupo
+  const handleDeleteGroup = async (groupId: string, groupName: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Previne o clique no card
+    
+    if (!confirm(`⚠️ ATENÇÃO: Tem certeza que deseja deletar o grupo "${groupName}"?\n\nEsta ação é IRREVERSÍVEL e irá:\n- Deletar todos os participantes\n- Deletar todos os resultados do sorteio\n- Deletar o grupo permanentemente\n\nEsta ação não pode ser desfeita!`)) return;
+    
+    try {
+      await firestore.deleteGroup(groupId);
+      toast.success("Grupo deletado com sucesso!");
+      // Recarregar a página para atualizar a lista
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao deletar grupo");
+    }
+  };
 
   // Debug: Verificar estado do usuário e grupos
   useEffect(() => {
@@ -130,15 +148,23 @@ export default function Dashboard() {
                       <span>Criado em {new Date(group.createdAt).toLocaleDateString('pt-BR')}</span>
                     </div>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 flex gap-2">
                     <Button 
-                      className="w-full" 
+                      className="flex-1" 
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(`/group/${group.id}`);
                       }}
                     >
                       Ver Detalhes
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={(e) => handleDeleteGroup(group.id, group.name, e)}
+                      title="Deletar grupo"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>

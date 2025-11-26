@@ -29,7 +29,7 @@ export default function GroupDetail() {
   const [participantPhone, setParticipantPhone] = useState("");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  const { group, isLoading: groupLoading } = useGroup(groupId);
+  const { group, isLoading: groupLoading, deleteGroup, isDeleting } = useGroup(groupId);
   const { participants, isLoading: participantsLoading, addParticipant, removeParticipant, isAdding, isRemoving } = useParticipants(groupId);
   const { performDraw, redoDraw, isPerforming, isRedoing } = useDraw(groupId);
 
@@ -140,6 +140,23 @@ export default function GroupDetail() {
 
     try {
       await performDraw(participants.map(p => p.id));
+    } catch (error) {
+      // Error já é tratado no hook
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!confirm("⚠️ ATENÇÃO: Tem certeza que deseja deletar este grupo?\n\nEsta ação é IRREVERSÍVEL e irá:\n- Deletar todos os participantes\n- Deletar todos os resultados do sorteio\n- Deletar o grupo permanentemente\n\nEsta ação não pode ser desfeita!")) return;
+    
+    if (!group || group.creatorId !== user?.id) {
+      toast.error("Você não tem permissão para deletar este grupo");
+      return;
+    }
+
+    try {
+      await deleteGroup();
+      toast.success("Grupo deletado com sucesso!");
+      router.push("/dashboard");
     } catch (error) {
       // Error já é tratado no hook
     }
@@ -442,6 +459,32 @@ export default function GroupDetail() {
                   </Button>
                 </div>
               )}
+              
+              {/* Botão de Deletar Grupo */}
+              <div className="pt-4 border-t">
+                <Button
+                  size="lg"
+                  variant="destructive"
+                  className="w-full gap-2"
+                  onClick={handleDeleteGroup}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Deletando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-5 w-5" />
+                      Deletar Grupo
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Esta ação é irreversível
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
