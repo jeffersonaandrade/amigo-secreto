@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { auth } from "@/lib/firebase";
-import { signOut, onAuthStateChanged, signInWithRedirect, signInWithPopup, getRedirectResult, GoogleAuthProvider, type User as FirebaseUser } from "firebase/auth";
+import { signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, type User as FirebaseUser } from "firebase/auth";
 import * as firestore from "@/lib/firestore";
 
 type UseAuthOptions = {
@@ -28,34 +28,8 @@ export function useAuth(options?: UseAuthOptions) {
       return;
     }
     
-    // 1. Verificar ativamente se voltamos do Google com erro ou sucesso
-    // IMPORTANTE: Aguardar um pouco para garantir que o Firebase processou o redirect
-    const checkRedirect = async () => {
-      if (!auth) return;
-      
-      try {
-        // Pequeno delay para garantir que o Firebase processou o redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const result = await getRedirectResult(auth);
-        if (result) {
-          console.log("✅ [Redirect] Sucesso! Usuário retornou do Google:", result.user.email);
-          console.log("✅ [Redirect] UID:", result.user.uid);
-          console.log("✅ [Redirect] Provider:", result.providerId);
-          // O onAuthStateChanged vai disparar automaticamente após isso
-        } else {
-          console.log("ℹ️ [Redirect] Nenhum resultado de redirect encontrado (login normal ou reload).");
-        }
-      } catch (error: any) {
-        console.error("❌ [Redirect] ERRO CRÍTICO ao processar retorno do Google:", error);
-        console.error("❌ [Redirect] Código do erro:", error.code);
-        console.error("❌ [Redirect] Mensagem:", error.message);
-        if (error.stack) {
-          console.error("❌ [Redirect] Stack:", error.stack);
-        }
-      }
-    };
-    
-    checkRedirect();
+    // Nota: Removido getRedirectResult pois agora usamos apenas Popup universal
+    // Isso resolve o problema de "Login Loop" no Safari/iOS com domínios gratuitos
 
     // 2. Ouve mudanças de sessão (Login normal e também quando volta do Google)
     // O onAuthStateChanged dispara automaticamente quando o usuário volta do Google
@@ -186,48 +160,31 @@ export async function loginWithGoogle() {
     prompt: 'select_account'
   });
 
-  // 1. Detecta se é dispositivo móvel (Celular/Tablet)
-  // Essa Regex cobre 99% dos dispositivos móveis
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
+  // SOLUÇÃO PARA iOS/Safari: Usar POPUP em TODOS os dispositivos
+  // O Safari bloqueia cookies em cross-domains (ITP - Intelligent Tracking Prevention)
+  // quando usa domínios gratuitos (Netlify + Firebase). O Redirect causa "Login Loop".
+  // O Popup funciona porque mantém a conexão viva na memória, sem depender de cookies persistentes.
   try {
-    if (isMobile) {
-      // 📱 CELULAR: Usa Redirect
-      // Motivo: Popups são bloqueados ou têm UX ruim em telas pequenas.
-      console.log("📱 [Auth] Mobile detectado: Iniciando Redirect...");
-      await signInWithRedirect(auth, provider);
-      // O código para aqui, pois a página vai mudar
-    } else {
-      // 💻 PC/NOTEBOOK: Usa Popup
-      // Motivo: Funciona perfeitamente em Localhost e não sofre com perda de cookies.
-      console.log("💻 [Auth] Desktop detectado: Iniciando Popup...");
-      const result = await signInWithPopup(auth, provider);
-      console.log("✅ [Auth] Popup fechado com sucesso! Usuário:", result.user.email);
-      // O Popup fecha sozinho e o onAuthStateChanged detecta o login automaticamente
-      return result;
-    }
-  } catch (error: any) {
-    console.error("❌ [Auth] Erro no login híbrido:", error);
-    
-    // Se o popup falhar (ex: bloqueado), tenta redirect como fallback
-    if (!isMobile && (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user')) {
-      console.log("⚠️ [Auth] Popup bloqueado, tentando Redirect como fallback...");
-      await signInWithRedirect(auth, provider);
-      return;
-    }
-    
-    throw error; // Repassa o erro para a tela de Login mostrar o toast
-  }
-}
-
-// Função para verificar resultado do redirect (chamar na página após redirect)
-export async function handleGoogleRedirect() {
-  if (!auth) return null;
-  try {
-    const result = await getRedirectResult(auth);
+    console.log("🔐 [Auth] Iniciando Login via Popup Universal (compatível com iOS/Safari)...");
+    const result = await signInWithPopup(auth, provider);
+    console.log("✅ [Auth] Popup fechado com sucesso! Usuário:", result.user.email);
     return result;
-  } catch (error) {
-    console.error("Erro ao processar redirect do Google:", error);
-    return null;
+  } catch (error: any) {
+    console.error("[Auth] Erro no login:", error);
+    
+    // Tratamento especial para erros comuns de popup
+    if (error.code === 'auth/popup-blocked') {
+      throw new Error("O navegador bloqueou a janela de login. Por favor, habilite popups nas configurações do navegador ou tente outro navegador.");
+    }
+    
+    if (error.code === 'auth/popup-closed-by-user') {
+      throw new Error("O login foi cancelado.");
+    }
+
+    if (error.code === 'auth/cancelled-popup-request') {
+      throw new Error("Outra janela de login já está aberta. Feche-a e tente novamente.");
+    }
+
+    throw error;
   }
 }
