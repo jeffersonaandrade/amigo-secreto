@@ -34,7 +34,9 @@ async function verifyIdToken(idToken: string, projectId: string): Promise<{ uid:
     }
     return null;
   } catch (error) {
-    console.warn("[Auth] Token verification failed:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn("[Auth] Token verification failed:", error);
+    }
     return null;
   }
 }
@@ -77,7 +79,9 @@ export async function createContextNext(headers: Record<string, string>): Promis
     }
   } catch (error) {
     // Authentication is optional for public procedures.
-    console.warn("[Auth] Failed to authenticate:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn("[Auth] Failed to authenticate:", error);
+    }
     user = null;
     userId = null;
   }

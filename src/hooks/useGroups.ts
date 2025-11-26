@@ -24,16 +24,15 @@ export function useGroups() {
     queryKey: ["groups", user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log("[useGroups] Usuário não autenticado ou sem ID");
         return [];
       }
-      console.log("[useGroups] Buscando grupos para creatorId:", user.id);
       try {
         const groups = await firestore.getGroupsByCreator(user.id);
-        console.log("[useGroups] Grupos encontrados:", groups.length, groups);
         return groups;
       } catch (error) {
-        console.error("[useGroups] Erro ao buscar grupos:", error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error("[useGroups] Erro ao buscar grupos:", error);
+        }
         throw error;
       }
     },
@@ -43,9 +42,6 @@ export function useGroups() {
   const createGroupMutation = useMutation({
     mutationFn: async (data: Omit<InsertGroup, "creatorId" | "inviteCode" | "isDrawn">) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
-      
-      console.log("[useGroups] Criando grupo com creatorId:", user.id);
-      console.log("[useGroups] Dados do grupo:", data);
       
       // Gerar código de convite
       const inviteCode = crypto.randomUUID().replace(/-/g, "").substring(0, 32);
@@ -57,7 +53,6 @@ export function useGroups() {
         isDrawn: false,
       });
       
-      console.log("[useGroups] Grupo criado com sucesso:", group.id, "creatorId:", group.creatorId);
       return group;
     },
     onSuccess: () => {

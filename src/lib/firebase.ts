@@ -13,17 +13,8 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// 🔍 DEBUG: Isso vai mostrar no console do navegador se as chaves foram lidas
-// Se aparecer "undefined", reinicie o servidor ou verifique o .env.local
-if (typeof window !== "undefined") {
-  console.log("[Firebase Config Check]", {
-    apiKey: firebaseConfig.apiKey ? "OK ✅" : "MISSING ❌",
-    projectId: firebaseConfig.projectId ? "OK ✅" : "MISSING ❌",
-    authDomain: firebaseConfig.authDomain ? "OK ✅" : "MISSING ❌",
-    appId: firebaseConfig.appId ? "OK ✅" : "MISSING ❌",
-  });
-
-  // Validação: Verifica se todas as chaves essenciais estão presentes
+// Validação: Verifica se todas as chaves essenciais estão presentes (apenas em desenvolvimento)
+if (typeof window !== "undefined" && process.env.NODE_ENV === 'development') {
   const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
   const missingKeys = requiredKeys.filter(key => !firebaseConfig[key as keyof typeof firebaseConfig]);
   
@@ -43,10 +34,10 @@ if (typeof window !== "undefined") {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
-    
-    console.log("[Firebase] Inicializado com sucesso ✅");
   } catch (error) {
-    console.error("[Firebase Error] Falha ao inicializar:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("[Firebase Error] Falha ao inicializar:", error);
+    }
     throw new Error("Firebase não pôde ser inicializado. Verifique as variáveis de ambiente.");
   }
 }

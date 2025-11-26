@@ -34,21 +34,20 @@ export function useAuth(options?: UseAuthOptions) {
     // 2. Ouve mudanças de sessão (Login normal e também quando volta do Google)
     // O onAuthStateChanged dispara automaticamente quando o usuário volta do Google
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log(`[Auth] onAuthStateChanged disparado: ${user ? `Usuário Logado: ${user.email} (${user.uid})` : 'Usuário deslogado'}`);
       setFirebaseUser(user);
       if (user) {
         // Create or update user in Firestore
         try {
-          console.log("[Auth] Sincronizando usuário no Firestore...");
           await firestore.upsertUser({
             id: user.uid,
             email: user.email || "",
             name: user.displayName || null,
             lastSignedIn: new Date(),
           });
-          console.log("[Auth] Usuário sincronizado no Firestore com sucesso ✅");
         } catch (error) {
-          console.error("[Auth] Erro ao sincronizar usuário no Firestore:", error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error("[Auth] Erro ao sincronizar usuário no Firestore:", error);
+          }
         }
       } else {
         setFirebaseUser(null);
@@ -70,15 +69,12 @@ export function useAuth(options?: UseAuthOptions) {
     enabled: !!firebaseUser,
   }) : { data: null, isLoading: false, error: null, refetch: async () => ({}) };
 
-  // Logs para debug (usando useEffect ao invés de onSuccess/onError)
+  // Logs de erro apenas em desenvolvimento
   useEffect(() => {
-    if (userQuery.data !== undefined) {
-      console.log("[Auth] Query auth.me retornou:", userQuery.data ? `Usuário: ${userQuery.data.email} (${userQuery.data.id})` : "null");
-    }
-    if (userQuery.error) {
+    if (userQuery.error && process.env.NODE_ENV === 'development') {
       console.error("[Auth] Erro na query auth.me:", userQuery.error);
     }
-  }, [userQuery.data, userQuery.error]);
+  }, [userQuery.error]);
 
   const logoutMutation = isClient ? trpc.auth.logout.useMutation({
     onSuccess: () => {
@@ -150,8 +146,9 @@ export function useAuth(options?: UseAuthOptions) {
 
 export async function loginWithGoogle() {
   if (!auth) {
-    console.error("[Auth Error] Firebase Auth não está inicializado");
-    console.error("[Auth Error] Verifique o console para ver quais chaves do Firebase estão faltando");
+    if (process.env.NODE_ENV === 'development') {
+      console.error("[Auth Error] Firebase Auth não está inicializado");
+    }
     throw new Error("Firebase Auth não está inicializado. Verifique as variáveis de ambiente no arquivo .env.local e reinicie o servidor.");
   }
   
@@ -165,12 +162,12 @@ export async function loginWithGoogle() {
   // quando usa domínios gratuitos (Netlify + Firebase). O Redirect causa "Login Loop".
   // O Popup funciona porque mantém a conexão viva na memória, sem depender de cookies persistentes.
   try {
-    console.log("🔐 [Auth] Iniciando Login via Popup Universal (compatível com iOS/Safari)...");
     const result = await signInWithPopup(auth, provider);
-    console.log("✅ [Auth] Popup fechado com sucesso! Usuário:", result.user.email);
     return result;
   } catch (error: any) {
-    console.error("[Auth] Erro no login:", error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("[Auth] Erro no login:", error);
+    }
     
     // Tratamento especial para erros comuns de popup
     if (error.code === 'auth/popup-blocked') {

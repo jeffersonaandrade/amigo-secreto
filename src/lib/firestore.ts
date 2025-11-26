@@ -191,8 +191,6 @@ export async function getGroupByInviteCode(inviteCode: string): Promise<Group | 
 }
 
 export async function getGroupsByCreator(creatorId: string): Promise<Group[]> {
-  console.log("[Firestore] Buscando grupos para creatorId:", creatorId);
-  
   try {
     // Primeiro, busca sem orderBy para evitar necessidade de índice composto
     const q = query(
@@ -200,8 +198,6 @@ export async function getGroupsByCreator(creatorId: string): Promise<Group[]> {
       where("creatorId", "==", creatorId)
     );
     const snapshot = await getDocs(q);
-    
-    console.log("[Firestore] Total de documentos encontrados:", snapshot.docs.length);
 
     // Ordena manualmente após buscar (mais simples e não requer índice)
     const groups = snapshot.docs
@@ -222,16 +218,16 @@ export async function getGroupsByCreator(creatorId: string): Promise<Group[]> {
       })
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Ordena por data decrescente
 
-    console.log("[Firestore] Grupos retornados:", groups.length);
     return groups;
   } catch (error: any) {
-    console.error("[Firestore] Erro ao buscar grupos:", error);
-    console.error("[Firestore] Código do erro:", error.code);
-    console.error("[Firestore] Mensagem:", error.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.error("[Firestore] Erro ao buscar grupos:", error);
+      console.error("[Firestore] Código do erro:", error.code);
+      console.error("[Firestore] Mensagem:", error.message);
+    }
     
     // Se o erro for de índice faltando, tenta sem orderBy
     if (error.code === "failed-precondition" || error.message?.includes("index")) {
-      console.log("[Firestore] Tentando buscar sem orderBy...");
       const q = query(
         collection(getDb(), "groups"),
         where("creatorId", "==", creatorId)

@@ -19,9 +19,7 @@ export default function Login() {
 
   // Redireciona automaticamente se já estiver logado (inclusive quando volta do Google)
   useEffect(() => {
-    console.log("[Login] Estado atual:", { authLoading, user: user ? `Usuário: ${user.email}` : "null" });
     if (!authLoading && user) {
-      console.log("[Login] Redirecionando para /dashboard...");
       toast.success("Login realizado com sucesso!");
       router.push("/dashboard");
     }
@@ -35,7 +33,9 @@ export default function Login() {
       await loginWithGoogle();
       // Esta linha não será executada porque a página será redirecionada
     } catch (error: any) {
-      console.error("Erro ao iniciar login com Google:", error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error("Erro ao iniciar login com Google:", error);
+      }
       
       // Mensagens de erro mais específicas
       let errorMessage = "Erro ao fazer login com Google";

@@ -45,19 +45,6 @@ export default function Dashboard() {
     }
   };
 
-  // Debug: Verificar estado do usuário e grupos
-  useEffect(() => {
-    console.log("[Dashboard] Estado do usuário:", {
-      user: user ? { id: user.id, email: user.email, name: user.name } : null,
-      isAuthenticated,
-      authLoading,
-    });
-    console.log("[Dashboard] Estado dos grupos:", {
-      groups: groups?.length || 0,
-      isLoading,
-      grupos: groups,
-    });
-  }, [user, isAuthenticated, authLoading, groups, isLoading]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
