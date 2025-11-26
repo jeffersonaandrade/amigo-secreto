@@ -1,8 +1,8 @@
 "use client";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as firestore from "@/lib/firestore";
 import { toast } from "sonner";
-import { isClient, safeUseQueryClient } from "./_helpers";
+import { isClient } from "./_helpers";
 
 // Algoritmo de sorteio que garante que ninguém tira a si mesmo
 function performDrawAlgorithm(participantIds: string[]): Map<string, string> {
@@ -51,7 +51,7 @@ export function useDraw(groupId: string | null) {
     };
   }
 
-  const queryClient = safeUseQueryClient();
+  const queryClient = useQueryClient();
 
   const drawsQuery = useQuery({
     queryKey: ["draws", groupId],
@@ -85,9 +85,13 @@ export function useDraw(groupId: string | null) {
       
       return { success: true };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["draws", groupId] });
-      queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+    onSuccess: async () => {
+      // Invalida e recarrega as queries relacionadas imediatamente
+      await queryClient.invalidateQueries({ queryKey: ["draws", groupId] });
+      await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+      // Força um refetch para garantir que os dados sejam atualizados
+      await queryClient.refetchQueries({ queryKey: ["draws", groupId] });
+      await queryClient.refetchQueries({ queryKey: ["group", groupId] });
       toast.success("Sorteio realizado com sucesso!");
     },
     onError: (error) => {
@@ -105,9 +109,13 @@ export function useDraw(groupId: string | null) {
       // Marcar grupo como não sorteado
       await firestore.updateGroup(groupId, { isDrawn: false });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["draws", groupId] });
-      queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+    onSuccess: async () => {
+      // Invalida e recarrega as queries relacionadas imediatamente
+      await queryClient.invalidateQueries({ queryKey: ["draws", groupId] });
+      await queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+      // Força um refetch para garantir que os dados sejam atualizados
+      await queryClient.refetchQueries({ queryKey: ["draws", groupId] });
+      await queryClient.refetchQueries({ queryKey: ["group", groupId] });
       toast.success("Sorteio resetado!");
     },
     onError: (error) => {
