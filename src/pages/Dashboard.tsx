@@ -2,7 +2,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Gift, Plus, Calendar, Users as UsersIcon, Loader2, Trash2 } from "lucide-react";
+import { Gift, Plus, Calendar, Users as UsersIcon, Loader2, Trash2, LogOut } from "lucide-react";
 import { APP_TITLE } from "@/const";
 import Link from "next/link";
 import { useGroups } from "@/hooks/useGroups";
@@ -14,9 +14,20 @@ import { toast } from "sonner";
 import * as firestore from "@/lib/firestore";
 
 export default function Dashboard() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const { groups, isLoading } = useGroups();
+
+  // Função para fazer logout
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Você saiu da conta com sucesso!");
+      router.push("/");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao sair. Tente novamente.");
+    }
+  };
 
   // Função para deletar grupo
   const handleDeleteGroup = async (groupId: string, groupName: string, e: React.MouseEvent) => {
@@ -74,9 +85,22 @@ export default function Dashboard() {
             </div>
           </Link>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Olá, <span className="font-semibold text-foreground">{user?.name || user?.email}</span>
-            </span>
+            <div className="flex flex-col items-end">
+              <span className="text-sm text-muted-foreground">Olá,</span>
+              <span className="text-sm font-semibold text-foreground max-w-[150px] truncate">
+                {user?.name || user?.email}
+              </span>
+            </div>
+            {/* Botão de Logout */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              title="Sair da conta"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </nav>
       </header>
