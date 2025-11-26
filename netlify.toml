@@ -1,29 +1,16 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  # O plugin do Netlify gerencia o publish directory automaticamente
+  # Não precisa especificar publish quando usa o plugin
 
-# Configuração para Next.js 15 com output standalone
+# Configuração para Next.js 15
 [build.environment]
   NODE_VERSION = "20"
 
-# Plugin do Netlify para Next.js (detecta automaticamente, mas configuramos explicitamente)
+# Plugin do Netlify para Next.js (ESSENCIAL para rotas API funcionarem)
+# Este plugin detecta automaticamente Next.js e configura tudo corretamente
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-# Redirecionamentos para SPA (Single Page Application)
-# Todas as rotas devem ir para index.html, exceto arquivos estáticos
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin"], Country = ["US"]}
-  force = false
-
-# Redirecionamentos específicos para API routes
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
 
 # Headers de segurança
 [[headers]]

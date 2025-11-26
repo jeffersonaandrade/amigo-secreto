@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false, // Desativado temporariamente para testar login com Google
-  output: 'standalone',
+  // Removido output: 'standalone' - O Netlify gerencia o deploy do Next.js automaticamente
   // Desabilita SSG completamente - todas as páginas serão renderizadas no servidor (SSR) ou cliente
   // Isso é necessário porque usamos tRPC e Firebase Client SDK que só funcionam no cliente
   generateBuildId: async () => {
